@@ -140,7 +140,7 @@ class EsQueryset(QuerySet):
 
         if self.filters:
             # TODO: should we add _cache = true ?!
-            search['filter'] = {}
+            search['bool'] = {}
             mapping = self.model.es.get_mapping()
 
             for field, value in self.filters.items():
@@ -162,25 +162,25 @@ class EsQueryset(QuerySet):
                     value = value.id
 
                 if operator == 'exact':
-                    filtr = {'bool': {'must': [{'term': {field_name: value}}]}}
+                    filtr = {'must': [{'term': {field_name: value}}]}
 
                 elif operator == 'not':
-                    filtr = {'bool': {'must_not': [{'term': {field_name: value}}]}}
+                    filtr = {'must_not': [{'term': {field_name: value}}]}
 
                 elif operator == 'should':
-                    filtr = {'bool': {operator: [{'term': {field_name: value}}]}}
+                    filtr = {operator: [{'match': {field_name: value}}]}
 
                 elif operator == 'contains':
-                    filtr = {'query': {'match': {field_name: {'query': value}}}}
+                    filtr = {'must': [{'match': {field_name: value}}]}
 
                 elif operator in ['gt', 'gte', 'lt', 'lte']:
-                    filtr = {'bool': {'must': [{'range': {field_name: {
-                        operator: value}}}]}}
+                    filtr = {'must': [{'range': {field_name: {
+                        operator: value}}}]}
 
                 elif operator == 'range':
-                    filtr = {'bool': {'must': [{'range': {field_name: {
+                    filtr = {'must': [{'range': {field_name: {
                         'gte': value[0],
-                        'lte': value[1]}}}]}}
+                        'lte': value[1]}}}]}
 
                 elif operator == 'isnull':
                     if value:
@@ -188,9 +188,9 @@ class EsQueryset(QuerySet):
                     else:
                         filtr = {'exists': {'field': field_name}}
 
-                nested_update(search['filter'], filtr)
+                nested_update(search['bool'], filtr)
 
-            body['query'] = {'filtered': search}
+            body['query'] = search
         else:
             body = search
 
